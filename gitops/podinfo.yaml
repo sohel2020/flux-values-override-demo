@@ -15,4 +15,4 @@ spec:
       interval: 1m
       valuesFiles:
         - values-${tenantName}.yaml
-      ignoreMissingValuesFiles: true
+      # ignoreMissingValuesFiles: true
