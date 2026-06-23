@@ -1,0 +1,17 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: podinfo
+  namespace: flux-system
+spec:
+  interval: 1m
+  chart:
+    spec:
+      chart: ./helm-charts/podinfo
+      sourceRef:
+        kind: GitRepository
+        name: flux-values-override-demo
+      interval: 1m
+      valuesFiles:
+        - values-${tenantName}.yaml
+      ignoreMissingValuesFiles: true
