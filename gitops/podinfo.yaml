@@ -8,11 +8,12 @@ spec:
   chart:
     spec:
       chart: ./helm-charts/podinfo
+      reconcileStrategy: Revision
       sourceRef:
         kind: GitRepository
         name: flux-values-override-demo
         namespace: flux-system
       interval: 1m
       valuesFiles:
+        - ./helm-charts/podinfo/values.yaml
         - ./helm-charts/podinfo/values-${tenantName}.yaml
-      # ignoreMissingValuesFiles: true

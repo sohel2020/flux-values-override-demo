@@ -1,1 +1,5 @@
-enabled: false
+enabled: true
+podinfo:
+  replicaCount: 1
+  ui:
+    message: "Hello from base values"

@@ -2,7 +2,7 @@ apiVersion: v2
 name: podinfo
 description: Wrapper chart for podinfo with value overrides
 type: application
-version: 1.0.1
+version: 1.0.2
 appVersion: "6.14.0"
 
 dependencies:
