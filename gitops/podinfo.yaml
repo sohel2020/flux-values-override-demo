@@ -17,3 +17,4 @@ spec:
       valuesFiles:
         - ./helm-charts/podinfo/values.yaml
         - ./helm-charts/podinfo/values-${tenantName}.yaml
+      ignoreMissingValuesFiles: true

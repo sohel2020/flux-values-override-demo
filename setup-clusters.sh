@@ -2,8 +2,7 @@
 set -euo pipefail
 
 # --- Config ---
-CLUSTER_1="tenant-1"
-CLUSTER_2="tenant-2"
+CLUSTERS=(tenant-1 tenant-2 tenant-3)
 FLUX_OPERATOR_VERSION="2.4.0"
 
 # --- Colors ---
@@ -40,8 +39,9 @@ create_cluster() {
   fi
 }
 
-create_cluster "$CLUSTER_1"
-create_cluster "$CLUSTER_2"
+for cluster in "${CLUSTERS[@]}"; do
+  create_cluster "$cluster"
+done
 
 # --- Install Flux Operator via Helm on a cluster ---
 install_flux_operator() {
@@ -56,8 +56,9 @@ install_flux_operator() {
     --wait
 }
 
-install_flux_operator "$CLUSTER_1"
-install_flux_operator "$CLUSTER_2"
+for cluster in "${CLUSTERS[@]}"; do
+  install_flux_operator "$cluster"
+done
 
 # --- Deploy FluxInstance (all controllers) on a cluster ---
 deploy_flux_instance() {
@@ -92,15 +93,16 @@ EOF
   kubectl -n flux-system wait --for=condition=Ready fluxinstance/flux --timeout=120s
 }
 
-deploy_flux_instance "$CLUSTER_1"
-deploy_flux_instance "$CLUSTER_2"
+for cluster in "${CLUSTERS[@]}"; do
+  deploy_flux_instance "$cluster"
+done
 
 # --- Summary ---
 echo ""
 log "Setup complete!"
 echo ""
 
-for cluster in "$CLUSTER_1" "$CLUSTER_2"; do
+for cluster in "${CLUSTERS[@]}"; do
   info "--- ${cluster} ---"
   kubectl config use-context "kind-${cluster}" >/dev/null
   kubectl -n flux-system get pods
@@ -108,5 +110,11 @@ for cluster in "$CLUSTER_1" "$CLUSTER_2"; do
 done
 
 info "Switch contexts with:"
-info "  kubectl config use-context kind-${CLUSTER_1}"
-info "  kubectl config use-context kind-${CLUSTER_2}"
+for cluster in "${CLUSTERS[@]}"; do
+  info "  kubectl config use-context kind-${cluster}"
+done
+
+info "Apply tenant Flux config with:"
+for cluster in "${CLUSTERS[@]}"; do
+  info "  kubectl config use-context kind-${cluster} && kubectl apply -f tenants-flux-config/${cluster}.yaml"
+done

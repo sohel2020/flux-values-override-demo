@@ -1,5 +1,5 @@
 enabled: true
 podinfo:
-  replicaCount: 3
+  replicaCount: 5
   ui:
     message: "Hello from tenant-2"

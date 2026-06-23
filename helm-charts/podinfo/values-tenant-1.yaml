@@ -1,1 +1,5 @@
-enabled: false
+enabled: true
+podinfo:
+  replicaCount: 10
+  ui:
+    message: "Hello from tenant-1"
