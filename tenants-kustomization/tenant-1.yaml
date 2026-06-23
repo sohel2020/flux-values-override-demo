@@ -1,0 +1,30 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: flux-values-override-demo
+  namespace: flux-system
+spec:
+  interval: 1m
+  url: https://github.com/sohel2020/flux-values-override-demo
+  ref:
+    branch: main
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: flux-values-override-demo
+  namespace: flux-system
+spec:
+  force: false
+  interval: 1m
+  path: ./gitops
+  postBuild:
+    substitute:
+      tenantName: tenant-1
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-values-override-demo
+    namespace: flux-system
+  timeout: 2m
+  wait: true
