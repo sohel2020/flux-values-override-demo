@@ -108,13 +108,3 @@ for cluster in "${CLUSTERS[@]}"; do
   kubectl -n flux-system get pods
   echo ""
 done
-
-info "Switch contexts with:"
-for cluster in "${CLUSTERS[@]}"; do
-  info "  kubectl config use-context kind-${cluster}"
-done
-
-info "Apply tenant Flux config with:"
-for cluster in "${CLUSTERS[@]}"; do
-  info "  kubectl config use-context kind-${cluster} && kubectl apply -f tenants-flux-config/${cluster}.yaml"
-done

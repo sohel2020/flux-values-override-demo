@@ -8,6 +8,7 @@ spec:
   chart:
     spec:
       chart: ./helm-charts/podinfo
+      # repackage and redeploy on every new Git commit (default ChartVersion only triggers on Chart.yaml version bumps)
       reconcileStrategy: Revision
       sourceRef:
         kind: GitRepository

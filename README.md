@@ -23,6 +23,12 @@ A single `HelmRelease` definition serves multiple tenants. Each tenant gets its 
 │       ├── values.yaml          # Base values (default for all tenants)
 │       ├── values-tenant-1.yaml # Tenant 1 overrides
 │       └── values-tenant-2.yaml # Tenant 2 overrides
+├── tenants-kustomization/
+│   ├── tenant-1.yaml            # Flux GitRepository + Kustomization for tenant-1
+│   ├── tenant-2.yaml            # Flux GitRepository + Kustomization for tenant-2
+│   └── tenant-3.yaml            # Flux GitRepository + Kustomization for tenant-3
+├── setup-clusters.sh            # Create kind clusters and install Flux
+├── teardown-clusters.sh         # Delete all kind clusters
 └── .gitignore
 ```
 
@@ -43,11 +49,65 @@ A single `HelmRelease` definition serves multiple tenants. Each tenant gets its 
 
 ## Prerequisites
 
-- A Kubernetes cluster
-- Flux CD installed on the cluster (`flux install`)
+- A Kubernetes cluster (or use the local kind setup below)
+- Flux CD installed on the cluster
 - `kubectl` and `flux` CLI tools
 
-## Step-by-Step Guide
+For local development with kind:
+
+- Docker
+- [kind](https://kind.sigs.k8s.io/)
+- `helm`
+
+## Local Development (kind)
+
+Use the helper scripts to spin up three isolated kind clusters (`tenant-1`, `tenant-2`, `tenant-3`), each with Flux installed.
+
+### Setup
+
+```bash
+./setup-clusters.sh
+```
+
+This script:
+
+1. Creates kind clusters for all tenants (skips any that already exist)
+2. Installs the Flux Operator via Helm on each cluster
+3. Deploys a `FluxInstance` with all Flux controllers
+
+Then apply the tenant Flux config on each cluster:
+
+```bash
+kubectl config use-context kind-tenant-1 && kubectl apply -f tenants-kustomization/tenant-1.yaml
+kubectl config use-context kind-tenant-2 && kubectl apply -f tenants-kustomization/tenant-2.yaml
+kubectl config use-context kind-tenant-3 && kubectl apply -f tenants-kustomization/tenant-3.yaml
+```
+
+Switch between clusters:
+
+```bash
+kubectl config use-context kind-tenant-1
+kubectl config use-context kind-tenant-2
+kubectl config use-context kind-tenant-3
+```
+
+### Teardown
+
+Delete all kind clusters created by the setup script:
+
+```bash
+./teardown-clusters.sh
+```
+
+Skip the confirmation prompt:
+
+```bash
+./teardown-clusters.sh --force
+```
+
+Deleting a kind cluster removes all workloads, Flux controllers, and Helm releases inside it — no separate cleanup is needed.
+
+## Manual Setup
 
 ### 1. Bootstrap Flux on your cluster
 
