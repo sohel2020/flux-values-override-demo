@@ -7,7 +7,7 @@ spec:
   interval: 1m
   chart:
     spec:
-      chart: ./helm-charts/podinfo
+      chart: ${helmChartDirectory}/podinfo
       # repackage and redeploy on every new Git commit (default ChartVersion only triggers on Chart.yaml version bumps)
       reconcileStrategy: Revision
       sourceRef:
@@ -17,6 +17,6 @@ spec:
       interval: 1m
       # last values file takes precedence
       valuesFiles:
-        - ./helm-charts/podinfo/values-${tenantName}.yaml
+        - ${helmChartDirectory}/podinfo/values-${tenantName}.yaml
       # ignore missing values files
       ignoreMissingValuesFiles: true

@@ -27,8 +27,8 @@ A single `HelmRelease` definition serves multiple tenants. Each tenant gets its 
 │   ├── tenant-1.yaml            # Flux GitRepository + Kustomization for tenant-1
 │   ├── tenant-2.yaml            # Flux GitRepository + Kustomization for tenant-2
 │   └── tenant-3.yaml            # Flux GitRepository + Kustomization for tenant-3
-├── setup-clusters.sh            # Create kind clusters and install Flux
-├── teardown-clusters.sh         # Delete all kind clusters
+├── setup-clusters.sh            # Create kind clusters, install Flux, apply tenant config
+├── teardown-clusters.sh         # Delete all kind clusters (parallel)
 └── .gitignore
 ```
 
@@ -61,7 +61,7 @@ For local development with kind:
 
 ## Local Development (kind)
 
-Use the helper scripts to spin up three isolated kind clusters (`tenant-1`, `tenant-2`, `tenant-3`), each with Flux installed.
+Use the helper scripts to spin up three isolated kind clusters (`tenant-1`, `tenant-2`, `tenant-3`), each with Flux installed and configured for its tenant.
 
 ### Setup
 
@@ -69,18 +69,22 @@ Use the helper scripts to spin up three isolated kind clusters (`tenant-1`, `ten
 ./setup-clusters.sh
 ```
 
-This script:
+This script runs all three clusters in parallel. For each tenant cluster it:
 
-1. Creates kind clusters for all tenants (skips any that already exist)
-2. Installs the Flux Operator via Helm on each cluster
+1. Creates the kind cluster (skips any that already exist)
+2. Installs the Flux Operator via Helm
 3. Deploys a `FluxInstance` with all Flux controllers
+4. Applies the matching tenant manifest from `tenants-kustomization/` (`GitRepository` + `Kustomization` with the correct `tenantName` substitution)
 
-Then apply the tenant Flux config on each cluster:
+No manual `kubectl apply` is needed after the script finishes.
+
+Verify Flux picked up the Git source and reconciled:
 
 ```bash
-kubectl config use-context kind-tenant-1 && kubectl apply -f tenants-kustomization/tenant-1.yaml
-kubectl config use-context kind-tenant-2 && kubectl apply -f tenants-kustomization/tenant-2.yaml
-kubectl config use-context kind-tenant-3 && kubectl apply -f tenants-kustomization/tenant-3.yaml
+kubectl config use-context kind-tenant-1
+flux get sources git
+flux get kustomizations
+flux get helmreleases -A
 ```
 
 Switch between clusters:
@@ -93,7 +97,7 @@ kubectl config use-context kind-tenant-3
 
 ### Teardown
 
-Delete all kind clusters created by the setup script:
+Delete all kind clusters created by the setup script (runs deletions in parallel):
 
 ```bash
 ./teardown-clusters.sh
@@ -119,7 +123,7 @@ flux install
 
 ### 2. Create the GitRepository source
 
-Point Flux at this repo:
+Point Flux at this repo. You can use the CLI:
 
 ```bash
 flux create source git flux-sync \
@@ -128,38 +132,19 @@ flux create source git flux-sync \
   --interval=1m
 ```
 
+Or apply the manifests from `tenants-kustomization/` (each file contains both the `GitRepository` and `Kustomization`).
+
 ### 3. Create a Flux Kustomization for a tenant
 
-Each tenant needs its own Flux Kustomization with `tenantName` substituted in.
-
-For tenant-1:
-
-```yaml
-apiVersion: kustomize.toolkit.fluxcd.io/v1
-kind: Kustomization
-metadata:
-  name: tenant-1
-  namespace: flux-system
-spec:
-  interval: 1m
-  sourceRef:
-    kind: GitRepository
-    name: flux-sync
-  path: ./gitops
-  prune: true
-  targetNamespace: tenant-1
-  postBuild:
-    substitute:
-      tenantName: "tenant-1"
-```
+Each tenant needs its own Flux Kustomization with `tenantName` substituted in. The repo includes ready-made manifests in `tenants-kustomization/` — for example, `tenant-1.yaml` sets `tenantName: tenant-1` in `postBuild.substitute`.
 
 Apply it:
 
 ```bash
-kubectl apply -f tenant-1.yaml
+kubectl apply -f tenants-kustomization/tenant-1.yaml
 ```
 
-Repeat for tenant-2 (change `tenantName` to `tenant-2` and `targetNamespace` to `tenant-2`).
+Repeat for other tenants using the matching file (`tenant-2.yaml`, `tenant-3.yaml`, etc.).
 
 ### 4. Verify the deployment
 
@@ -172,8 +157,6 @@ kubectl get pods -n tenant-2
 
 ### 5. Add a new tenant
 
-1. Create `helm-charts/podinfo/values-tenant-3.yaml` with your overrides.
-2. Create a new Flux Kustomization with `tenantName: "tenant-3"`.
-3. Commit and push. Flux picks it up automatically.
-
-If you skip step 1, the tenant still works because `ignoreMissingValuesFiles: true` falls back to base values.
+1. Create `helm-charts/podinfo/values-tenant-N.yaml` with your overrides (optional — base values are used if missing).
+2. Add `tenants-kustomization/tenant-N.yaml` with a `GitRepository`, `Kustomization`, and `tenantName: tenant-N` in `postBuild.substitute`.
+3. Commit and push. Flux picks it up automatically on clusters that have that manifest applied.
