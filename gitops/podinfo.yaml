@@ -14,5 +14,5 @@ spec:
         namespace: flux-system
       interval: 1m
       valuesFiles:
-        - values-${tenantName}.yaml
-      # ignoreMissingValuesFiles: true
+        - ./helm-charts/podinfo/values-${tenantName}.yaml
+      ignoreMissingValuesFiles: true
