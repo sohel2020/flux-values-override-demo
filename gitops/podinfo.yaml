@@ -14,7 +14,7 @@ spec:
         name: flux-values-override-demo
         namespace: flux-system
       interval: 1m
+      # last values file takes precedence
       valuesFiles:
-        - ./helm-charts/podinfo/values.yaml
         - ./helm-charts/podinfo/values-${tenantName}.yaml
       ignoreMissingValuesFiles: true
