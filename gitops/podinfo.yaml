@@ -11,7 +11,7 @@ spec:
       reconcileStrategy: Revision
       sourceRef:
         kind: GitRepository
-        name: flux-values-override-demo
+        name: flux-sync
         namespace: flux-system
       interval: 1m
       # last values file takes precedence

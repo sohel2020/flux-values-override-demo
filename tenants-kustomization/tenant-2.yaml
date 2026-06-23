@@ -1,18 +1,18 @@
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: GitRepository
 metadata:
-  name: flux-values-override-demo
+  name: flux-sync
   namespace: flux-system
 spec:
   interval: 1m
-  url: https://github.com/sohel2020/flux-values-override-demo
+  url: https://github.com/sohel2020/flux-sync
   ref:
     branch: main
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: flux-values-override-demo
+  name: flux-sync
   namespace: flux-system
 spec:
   force: false
@@ -25,6 +25,6 @@ spec:
   sourceRef:
     namespace: flux-system
     kind: GitRepository
-    name: flux-values-override-demo
+    name: flux-sync
   timeout: 2m
   wait: true
