@@ -17,4 +17,5 @@ spec:
       # last values file takes precedence
       valuesFiles:
         - ./helm-charts/podinfo/values-${tenantName}.yaml
+      # ignore missing values files
       ignoreMissingValuesFiles: true
