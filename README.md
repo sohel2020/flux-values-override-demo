@@ -28,7 +28,7 @@ A single `HelmRelease` definition serves multiple tenants. Each tenant gets its 
 │   ├── tenant-2.yaml            # Flux GitRepository + Kustomization for tenant-2
 │   └── tenant-3.yaml            # Flux GitRepository + Kustomization for tenant-3
 ├── setup-clusters.sh            # Create kind clusters, install Flux, apply tenant config
-├── teardown-clusters.sh         # Delete all kind clusters (parallel)
+├── teardown-clusters.sh         # Delete all kind clusters
 └── .gitignore
 ```
 
@@ -97,7 +97,7 @@ kubectl config use-context kind-tenant-3
 
 ### Teardown
 
-Delete all kind clusters created by the setup script (runs deletions in parallel):
+Delete all kind clusters created by the setup script:
 
 ```bash
 ./teardown-clusters.sh

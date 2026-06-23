@@ -14,9 +14,6 @@ log()  { echo -e "${GREEN}[+]${NC} $1"; }
 info() { echo -e "${CYAN}[i]${NC} $1"; }
 err()  { echo -e "${RED}[!]${NC} $1" >&2; }
 
-cluster_log()  { log "[$1] $2"; }
-cluster_info() { info "[$1] $2"; }
-
 usage() {
   cat <<EOF
 Usage: $(basename "$0") [--force]
@@ -65,35 +62,20 @@ if [[ "$FORCE" != true ]]; then
   fi
 fi
 
-# --- Delete kind clusters in parallel ---
+# --- Delete kind clusters ---
 delete_cluster() {
   local name=$1
   if kind get clusters 2>/dev/null | grep -q "^${name}$"; then
-    cluster_log "$name" "Deleting kind cluster"
+    log "Deleting kind cluster: ${name}"
     kind delete cluster --name "$name"
-    cluster_log "$name" "Deleted"
   else
-    cluster_info "$name" "Cluster does not exist, skipping."
+    info "Cluster ${name} does not exist, skipping."
   fi
 }
 
-pids=()
 for cluster in "${CLUSTERS[@]}"; do
-  delete_cluster "$cluster" &
-  pids+=($!)
+  delete_cluster "$cluster"
 done
-
-failed=0
-for pid in "${pids[@]}"; do
-  if ! wait "$pid"; then
-    failed=1
-  fi
-done
-
-if (( failed )); then
-  err "One or more clusters failed to delete."
-  exit 1
-fi
 
 echo ""
 log "Teardown complete!"
