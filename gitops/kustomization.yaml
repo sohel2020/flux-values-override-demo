@@ -5,4 +5,5 @@ resources:
   - namespace.yaml
   - istio-sail-operator.yaml
   - istio-control-plane.yaml
+  - istio-service-entry.yaml
   - podinfo.yaml

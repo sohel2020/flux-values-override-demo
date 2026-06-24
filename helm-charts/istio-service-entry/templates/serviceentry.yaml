@@ -1,0 +1,6 @@
+{{- range .Values.commonServiceEntries }}
+{{- include "istio-service-entry.render" (dict "root" $ "entry" .) }}
+{{- end }}
+{{- range .Values.serviceEntries }}
+{{- include "istio-service-entry.render" (dict "root" $ "entry" .) }}
+{{- end }}

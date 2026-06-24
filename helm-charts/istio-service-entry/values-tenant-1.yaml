@@ -1,0 +1,11 @@
+serviceEntries:
+  - name: google-api
+    namespace: istio-system
+    hosts:
+      - api.google.com
+    ports:
+      - number: 443
+        name: https
+        protocol: HTTPS
+    location: MESH_EXTERNAL
+    resolution: DNS

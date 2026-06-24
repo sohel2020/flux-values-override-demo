@@ -28,7 +28,7 @@ spec:
       sourceRef:
         kind: GitRepository
         name: flux-sync
-        namespace: istio-system
+        namespace: flux-system
       interval: 1m
   targetNamespace: istio-system
   values:
