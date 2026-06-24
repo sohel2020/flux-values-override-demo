@@ -1,0 +1,65 @@
+{{- range $ns, $cfg := .Values.namespaces }}
+{{- if or $cfg.allowedNamespaces $cfg.allowedPrincipals }}
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-namespace-ingress
+  namespace: {{ $ns }}
+spec:
+  action: ALLOW
+  rules:
+    {{- if $cfg.allowedNamespaces }}
+    - from:
+        - source:
+            namespaces:
+              {{- range $cfg.allowedNamespaces }}
+              - {{ . | quote }}
+              {{- end }}
+    {{- end }}
+    {{- range $cfg.allowedPrincipals }}
+    - from:
+        - source:
+            principals:
+              - {{ . | quote }}
+    {{- end }}
+{{- end }}
+
+{{- /*
+Optional namespace-scoped default-deny AuthorizationPolicy. See values.yaml
+`namespaces.<ns>.defaultDeny` for the full rationale. Two render modes:
+
+  deny  — `action: ALLOW` with no rules. Istio interprets this as "no
+          source matches the ALLOW", which means effective deny-all on
+          every workload in the namespace UNLESS that workload has its
+          own ALLOW AuthorizationPolicy (per-workload ALLOWs union with
+          this one). The canonical Istio default-deny pattern.
+
+  audit — `action: AUDIT` matching all traffic. Logs what would be
+          denied WITHOUT enforcing. Useful as a pre-flight step before
+          flipping a namespace to "deny".
+
+Same resource name in both modes so an operator promoting audit → deny
+just rewrites the spec in place (no orphan).
+*/}}
+{{- if eq (default "" $cfg.defaultDeny) "deny" }}
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: default-deny
+  namespace: {{ $ns }}
+spec: {}
+{{- else if eq (default "" $cfg.defaultDeny) "audit" }}
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: default-deny
+  namespace: {{ $ns }}
+spec:
+  action: AUDIT
+  rules:
+    - {}
+{{- end }}
+{{- end }}

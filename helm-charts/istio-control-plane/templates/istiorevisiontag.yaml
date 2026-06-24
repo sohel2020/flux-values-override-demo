@@ -1,0 +1,10 @@
+{{- if .Values.revisionTag.enabled }}
+apiVersion: sailoperator.io/v1
+kind: IstioRevisionTag
+metadata:
+  name: {{ .Values.revisionTag.name }}
+spec:
+  targetRef:
+    kind: {{ .Values.revisionTag.targetRef.kind }}
+    name: {{ .Values.revisionTag.targetRef.name }}
+{{- end }}

@@ -1,0 +1,5 @@
+apiVersion: v2
+name: istio-control-plane
+description: Istio service mesh control plane configuration via Sail Operator CRs
+version: 0.0.27
+type: application

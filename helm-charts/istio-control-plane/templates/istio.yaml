@@ -1,0 +1,43 @@
+{{- if .Values.istio.enabled }}
+apiVersion: sailoperator.io/v1
+kind: Istio
+metadata:
+  name: {{ .Values.istio.name }}
+spec:
+  namespace: {{ .Values.istio.namespace }}
+  version: {{ .Values.istio.version }}
+  updateStrategy:
+    type: {{ .Values.istio.updateStrategy.type }}
+    inactiveRevisionDeletionGracePeriodSeconds: {{ .Values.istio.updateStrategy.inactiveRevisionDeletionGracePeriodSeconds }}
+  {{- if .Values.istio.values }}
+  values:
+    {{- $vals := deepCopy .Values.istio.values }}
+    {{- $tenant := "" }}
+    {{- $cluster := "" }}
+    {{- with .Values.global }}{{ $tenant = .tenant | default "" }}{{ end }}
+    {{- with (index .Values "k8s-monitoring") }}{{ with .cluster }}{{ $cluster = .name | default "" }}{{ end }}{{ end }}
+    {{- if or $tenant $cluster }}
+    {{- $pm := dict "TENANT_ID" $tenant "CLUSTER_NAME" $cluster }}
+    {{- $dc := $vals.meshConfig.defaultConfig | default dict }}
+    {{- $_ := set $dc "proxyMetadata" (merge ($dc.proxyMetadata | default dict) $pm) }}
+    {{- $_ := set $vals.meshConfig "defaultConfig" $dc }}
+    {{- end }}
+    {{- if .Values.spire.enabled }}
+    {{- /* Attach the spire-mount sidecar-injector partial template. See
+           templates/_helpers.tpl for the full rationale. */}}
+    {{- if not $vals.sidecarInjectorWebhook }}
+    {{- $_ := set $vals "sidecarInjectorWebhook" dict }}
+    {{- end }}
+    {{- $siw := $vals.sidecarInjectorWebhook }}
+    {{- $defaultTpls := $siw.defaultTemplates | default (list "sidecar") }}
+    {{- if not (has "spire-mount" $defaultTpls) }}
+    {{- $defaultTpls = append $defaultTpls "spire-mount" }}
+    {{- end }}
+    {{- $_ := set $siw "defaultTemplates" $defaultTpls }}
+    {{- $tpls := $siw.templates | default dict }}
+    {{- $_ := set $tpls "spire-mount" (include "istio-control-plane.spireMountTemplate" .) }}
+    {{- $_ := set $siw "templates" $tpls }}
+    {{- end }}
+    {{- toYaml $vals | nindent 4 }}
+  {{- end }}
+{{- end }}

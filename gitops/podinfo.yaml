@@ -2,9 +2,12 @@ apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: podinfo
-  namespace: default
+  namespace: podinfo
 spec:
   interval: 1m
+  dependsOn:
+    - name: istio-control-plane
+      namespace: istio-system
   chart:
     spec:
       chart: ${helmChartDirectory}/podinfo

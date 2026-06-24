@@ -1,0 +1,185 @@
+# Istio control plane configuration for Sail Operator
+#
+# This chart creates the Sail Operator custom resources:
+#   - Istio CR (control plane / istiod)
+#   - IstioCNI CR (CNI node agent)
+#   - IstioRevisionTag CR (stable revision alias)
+#
+# All Istio Helm values can be passed through istio.values below.
+# See https://istio.io/latest/docs/reference/config/istio.operator.v1alpha1/
+
+istio:
+  enabled: true
+  name: default
+  version: v1.26.3
+  namespace: istio-system
+  updateStrategy:
+    type: RevisionBased
+    inactiveRevisionDeletionGracePeriodSeconds: 30
+  values:
+    meshConfig:
+      enableTracing: true
+      accessLogFile: /dev/stdout
+      outboundTrafficPolicy:
+        mode: REGISTRY_ONLY
+      defaultConfig:
+        holdApplicationUntilProxyStarts: true
+        tracing: {}
+        # Network topology for proper X-Forwarded-For handling.
+        # numTrustedProxies: number of trusted proxies in front of Istio sidecars.
+        # Set to 1 when Envoy Gateway is in front of the mesh (it sets XFF).
+        # Set to 0 if sidecars receive traffic directly without any proxy.
+        gatewayTopology:
+          numTrustedProxies: 1
+      extensionProviders:
+        - name: otel-tracing
+          opentelemetry:
+            service: alloy-alloy-alloy-receiver.alloy.svc.cluster.local
+            port: 4317
+            resourceDetectors:
+              environment: {}
+    pilot:
+      seccompProfile:
+        type: RuntimeDefault
+      cni:
+        enabled: true
+        provider: default
+      # Enable Kubernetes native sidecars (GA since K8s 1.29).
+      # Injects istio-proxy as an init container with restartPolicy: Always,
+      # so it starts BEFORE application init containers. This fixes init
+      # containers that need network access (e.g. database migrations).
+      # See https://istio.io/latest/blog/2023/native-sidecars/
+      env:
+        ENABLE_NATIVE_SIDECARS: "true"
+      autoscaleMin: 2
+      resources:
+        requests:
+          cpu: 500m
+          memory: 2Gi
+
+istioCNI:
+  enabled: true
+  name: default
+  version: v1.26.3
+  namespace: istio-cni
+
+revisionTag:
+  enabled: true
+  name: default
+  targetRef:
+    kind: Istio
+    name: default
+
+# Mesh-enrolled namespaces.
+# Each entry creates a PeerAuthentication with the specified mTLS mode.
+# When allowedNamespaces and/or allowedPrincipals is set, an AuthorizationPolicy
+# is created that restricts inbound traffic to the listed sources.
+# Omit both for ingress gateways that receive external traffic.
+#
+# `defaultDeny` adds a namespace-scoped fail-closed fallback. Per-workload
+# AuthorizationPolicies with their own ALLOW rules continue to grant traffic
+# (Istio unions ALLOW rules; deny is by absence of an ALLOW match). Modes:
+#   defaultDeny: deny   — `action: ALLOW` with no rules → effective deny-all
+#                         on every workload that has no other ALLOW AP.
+#   defaultDeny: audit  — `action: AUDIT` matching all traffic. Logs what
+#                         would be denied WITHOUT enforcing. Use as a
+#                         pre-flight step before flipping to "deny".
+#   omitted             — no resource rendered.
+#
+# Example:
+#   namespaces:
+#     my-app:
+#       mtls: STRICT
+#       defaultDeny: audit          # log-only; promote to "deny" later
+#       allowedNamespaces:
+#         - gateway-external
+#         - my-app
+#     my-egress-gw:
+#       mtls: STRICT
+#       defaultDeny: deny           # fail-closed
+#       allowedNamespaces:
+#         - my-app
+#       # allowedPrincipals can restrict to specific service accounts.
+#       # Use the trust-domain-qualified identity WITHOUT the "spiffe://"
+#       # scheme. Istio prepends the scheme when compiling source.principals,
+#       # so including it yields a non-matching "spiffe://spiffe://..." matcher:
+#       #   <trust-domain>/ns/<ns>/sa/<sa>
+#       # The legacy Citadel format "cluster.local/ns/<ns>/sa/<sa>" no
+#       # longer matches — see helm-charts/kubevela-components/templates/
+#       # traits/istio-authz.yaml for the full rationale.
+#       # allowedPrincipals:
+#       #   - "my.trust.domain/ns/my-app/sa/frontend"
+#     my-ingress:
+#       mtls: PERMISSIVE
+namespaces: {}
+
+# Mesh-wide default PeerAuthentication.
+#
+# When set, renders a single PA named `mesh-default` in the istiod
+# namespace (`istio.namespace`, defaults to istio-system) with no
+# workload selector. Istio applies this as the fallback whenever no
+# more-specific PA matches — i.e. any mesh-injected namespace that is
+# NOT listed in `.Values.namespaces` above and has no workload-level
+# PeerAuthentication of its own.
+#
+# Leave empty (the chart default) to render no resource and keep
+# Istio's implicit fallback in effect. Set `mtls:` to render the PA.
+#
+# Modes:
+#   PERMISSIVE — both mTLS and plaintext accepted. Identical to Istio's
+#                implicit default; the PA exists only to make the
+#                cluster's posture declarative and give a single place
+#                to flip the cluster to STRICT later.
+#   STRICT     — only mTLS traffic accepted; plaintext rejected. Safe
+#                only after auditing every mesh-injected namespace.
+#   DISABLE    — mTLS off entirely.
+#
+# Per-namespace PAs from `.Values.namespaces` and any workload-level
+# PAs continue to override this for their scoped resources.
+#
+# Dual-revision note: in our setup the chart is used in two parallel
+# HelmReleases (default revision owns mesh-wide singletons; spire
+# revision is the active istiod). Set `meshDefault` only on the
+# release that owns shared mesh resources — leaving the other at the
+# chart default avoids two releases racing to own the same PA.
+meshDefault: {}
+
+# SPIRE workload-API socket integration.
+#
+# When enabled, attach the `spire-mount` sidecar-injector partial template
+# to the Istio CR's `sidecarInjectorWebhook.defaultTemplates` (alongside
+# the upstream `sidecar` template). Strategic-merged on top of upstream
+# `sidecar` (and on top of `gateway` for opt-in gateway pods via the
+# annotation `inject.istio.io/templates: "gateway,spire-mount"`), the
+# partial swaps the `workload-socket` volume from `emptyDir: {}` to the
+# SPIFFE CSI driver — so istio-proxy reads its SVID from the SPIRE
+# Workload API socket instead of istiod xDS.
+#
+# Only the spire revision uses this. The default revision (Citadel)
+# leaves `spire.enabled` at false and the chart renders vanilla
+# sidecarInjectorWebhook values.
+#
+# The actual template body and its rationale live in
+# templates/_helpers.tpl. The chart's `templates/istio.yaml` merges the
+# template into `istio.values.sidecarInjectorWebhook` at render time —
+# any user-supplied `sidecarInjectorWebhook` values are preserved.
+spire:
+  enabled: false
+
+tracing:
+  enabled: true
+  providerName: otel-tracing
+  samplingPercentage: 100
+  customTags:
+    tenant_id:
+      environment:
+        name: TENANT_ID
+        defaultValue: "unknown"
+    cluster_name:
+      environment:
+        name: CLUSTER_NAME
+        defaultValue: "unknown"
+    mesh_node:
+      environment:
+        name: ISTIO_META_NODE_NAME
+        defaultValue: ""

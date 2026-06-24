@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-system
+  # labels:
+  #   istio-injection: enabled
+---
+# Namespace for the podinfo application
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: podinfo
+  labels:
+    istio-injection: enabled

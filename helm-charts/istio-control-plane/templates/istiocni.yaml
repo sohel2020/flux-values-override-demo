@@ -1,0 +1,9 @@
+{{- if .Values.istioCNI.enabled }}
+apiVersion: sailoperator.io/v1
+kind: IstioCNI
+metadata:
+  name: {{ .Values.istioCNI.name }}
+spec:
+  version: {{ .Values.istioCNI.version }}
+  namespace: {{ .Values.istioCNI.namespace }}
+{{- end }}

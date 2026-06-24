@@ -1,0 +1,24 @@
+{{- if .Values.meshDefault.mtls }}
+---
+# Mesh-wide fallback PeerAuthentication. See `meshDefault` block in
+# values.yaml for the full rationale and rollout sequence.
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: mesh-default
+  namespace: {{ .Values.istio.namespace | default "istio-system" }}
+spec:
+  mtls:
+    mode: {{ .Values.meshDefault.mtls }}
+{{- end }}
+{{- range $ns, $cfg := .Values.namespaces }}
+---
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: {{ $ns }}
+spec:
+  mtls:
+    mode: {{ $cfg.mtls | default "STRICT" }}
+{{- end }}
