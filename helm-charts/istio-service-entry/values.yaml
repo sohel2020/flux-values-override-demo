@@ -1,3 +1,7 @@
+# Enable or disable the ServiceEntry resources.
+enabled: true
+
+
 # Shared ServiceEntries deployed on every tenant cluster.
 commonServiceEntries:
   - name: github-api

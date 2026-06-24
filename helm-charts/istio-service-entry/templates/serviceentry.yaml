@@ -1,6 +1,8 @@
 {{- $entries := concat (.Values.commonServiceEntries | default list) (.Values.serviceEntries | default list) }}
+{{- if .Values.enabled }}
 {{- range $entries }}
 
 ---
 {{- include "istio-service-entry.render" (dict "root" $ "entry" .) }}
+{{- end }}
 {{- end }}
