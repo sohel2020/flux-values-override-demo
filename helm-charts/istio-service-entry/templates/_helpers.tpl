@@ -12,10 +12,9 @@ helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | 
 Render a single ServiceEntry. Expects dict with keys "root" (Helm root context)
 and "entry" (ServiceEntry values map).
 */}}
-{{- define "istio-service-entry.render" -}}
-{{- $root := .root -}}
-{{- $entry := .entry -}}
----
+{{- define "istio-service-entry.render" }}
+{{- $root := .root }}
+{{- $entry := .entry }}
 apiVersion: networking.istio.io/v1
 kind: ServiceEntry
 metadata:
@@ -61,4 +60,4 @@ spec:
   workloadSelector:
     {{- toYaml . | nindent 4 }}
   {{- end }}
-{{- end -}}
+{{- end }}

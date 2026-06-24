@@ -1,5 +1,5 @@
 apiVersion: v2
 name: istio-service-entry
 description: Istio ServiceEntry resources for external and mesh-adjacent services
-version: 0.0.1
+version: 0.0.2
 type: application
