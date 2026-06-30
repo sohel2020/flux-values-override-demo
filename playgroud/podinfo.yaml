@@ -31,7 +31,6 @@ metadata:
   name: podinfo
   namespace: podinfo
 spec:
-  interval: 1m
   sources:
     - alias: chart
       kind: OCIRepository
