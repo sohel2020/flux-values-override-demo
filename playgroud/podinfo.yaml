@@ -48,7 +48,7 @@ spec:
         - from: "@chart/"
           to: "@artifact/"
         # overlay tenant values onto the chart's values.yaml
-        - from: "@repo/values/${tenantName}*-values.yaml"
+        - from: "@repo/values/${tenantName}-values.yaml*"
           to: "@artifact/podinfo/values.yaml"
           strategy: Merge
 ---
